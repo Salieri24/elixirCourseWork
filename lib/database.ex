@@ -1,14 +1,14 @@
 defmodule Database do
   use GenServer
-  import User
+  # import User
   # add(user) (no same email ili username)
   # log in(un i pass)! not log in with more than one user
   # delete user( username)
   # change pass ( username old pass new pass). only loged in user can change pass
   # logout(username)
   # show() all users in database/
-  def start_link do
-    GenServer.start_link(__MODULE__, [], [{:name, __MODULE__}])
+  def start_link(state) do
+    GenServer.start_link(__MODULE__, state, [{:name, __MODULE__}])
   end
 
   def init(init_args) do
@@ -29,9 +29,13 @@ defmodule Database do
     GenServer.call(__MODULE__, {:delete_user, username})
   end
 
+  def login(username, password) when is_bitstring(username) and is_bitstring(username) do
+    GenServer.call(__MODULE__,{:login, username, password})
+  end
+
   # Server side
 
-  def handle_call({:save_user, input}, data) do
+  def handle_call({:save_user, input},_from, data) do
     data
     |> Enum.all?(fn user -> not User.compare(user, input) end)
     |> add(input, data)
@@ -42,14 +46,22 @@ defmodule Database do
   end
 
   def handle_call({:delete_user, name}, _from, data) do
-    new_list = Enum.filter(data, fn
-          %{username: ^name} -> false
-          _user -> true
-        end)
+    new_list = Enum.filter(data, fn %{username: username} -> username != name end)
     if length(new_list) != length(data) do
       {:reply, :ok, new_list}
     else
       {:reply, {:error, "User with username #{name} does not exist"}, new_list}
+    end
+  end
+
+  def handle_call({:login, username, password},_from,data) do
+    data
+    |>Enum.find(false,fn user -> User.attempt_login(user,username,password) end)
+    |> if do
+      #todo: update db state on login
+      {:reply, :ok, data}
+    else
+      {:reply, {:error, "Invalid credentials"}, data}
     end
   end
 
