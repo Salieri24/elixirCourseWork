@@ -6,7 +6,7 @@ defmodule Sup do
 
   def init(_init_args) do
     children = [
-      {Database, []}
+      {Database, {false, %{}}}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
