@@ -68,7 +68,7 @@ defmodule Database do
   end
 
   def handle_call({:login, _, _}, _from, %__MODULE__{is_logged_in: true} = state) do
-    {:reply, {:error, "A user is already logged in!"}, state}
+    {:reply, {:error, "An user is already logged in!"}, state}
   end
 
   def handle_call(
