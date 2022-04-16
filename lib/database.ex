@@ -1,13 +1,7 @@
 defmodule Database do
   defstruct is_logged_in: false, users: %{}
   use GenServer
-  # import User
-  # add(user) (no same email ili username)
-  # log in(un i pass)! not log in with more than one user
-  # delete user( username)
-  # change pass ( username old pass new pass). only loged in user can change pass
-  # logout(username)
-  # show() all users in database/
+
   def start_link(state) do
     GenServer.start_link(__MODULE__, state, [{:name, __MODULE__}])
   end
@@ -45,69 +39,67 @@ defmodule Database do
 
   # Server side
 
-  def handle_call(:show, _from, %__MODULE__{users: data} = state) do
+  def handle_call(:show, _from, 
+  %__MODULE__{users: data} = state) do
     {:reply, {:ok, data}, state}
   end
 
-  def handle_call({:save_user, input}, _from, %__MODULE__{users: data} = state) do
+  def handle_call({:save_user, input}, _from, 
+  %__MODULE__{users: data} = state) do
     data
     |> Map.values()
     |> Enum.all?(fn user -> not User.compare(user, input) end)
     |> add(input, state)
   end
 
-  def handle_call(
-        {:login, username, password},
-        _from,
-        %__MODULE__{is_logged_in: false, users: data} = state
-      ) do
+  def handle_call({:login, username, password}, _from, 
+  %__MODULE__{is_logged_in: false, users: data} = state) do
     data
     |> Map.get(username)
     |> User.checkCred(username, password)
     |> logIn(state)
   end
 
-  def handle_call({:login, _, _}, _from, %__MODULE__{is_logged_in: true} = state) do
+  def handle_call({:login, _, _}, _from, 
+  %__MODULE__{is_logged_in: true} = state) do
     {:reply, {:error, "An user is already logged in!"}, state}
   end
 
-  def handle_call(
-        {:logout, username},
-        _from,
-        %__MODULE__{is_logged_in: true, users: data} = state
-      ) do
+  def handle_call({:logout, username},_from,
+  %__MODULE__{is_logged_in: true, users: data} = state) do
     data
     |> Map.get(username)
     |> logOut(state)
   end
 
-  def handle_call({:logout, _}, _from, %__MODULE__{is_logged_in: false} = state) do
+  def handle_call({:logout, _}, _from, 
+  %__MODULE__{is_logged_in: false} = state) do
     {:reply, {:error, "Noone is logged in!"}, state}
   end
 
-  def handle_call(
-        {:change_password, username, old_password, new_password},
-        _from,
-        %__MODULE__{is_logged_in: true, users: data} = state
-      ) do
+  def handle_call({:change_password, username, old_password, new_password},_from,
+  %__MODULE__{is_logged_in: true, users: data} = state) do
     data
     |> Map.get(username)
     |> User.checkCred(username, old_password)
     |> changePass(new_password, state)
   end
 
-  def handle_call({:change_password, _, _, _}, _from, %__MODULE__{is_logged_in: false} = state) do
+  def handle_call({:change_password, _, _, _}, _from, 
+  %__MODULE__{is_logged_in: false} = state) do
     {:reply, {:error, "Log in to change your password!"}, state}
   end
 
-  def handle_cast({:delete_user, name}, %__MODULE__{is_logged_in: is_in, users: data}) do
+  def handle_cast({:delete_user, name}, 
+  %__MODULE__{is_logged_in: is_in, users: data}) do
     new_data = Map.delete(data, name)
     {:noreply, %__MODULE__{is_logged_in: is_in, users: new_data}}
   end
 
   # Private functions
 
-  defp add(true, %User{username: name} = u, %__MODULE__{is_logged_in: is_in, users: data}) do
+  defp add(true, %User{username: name} = u, 
+  %__MODULE__{is_logged_in: is_in, users: data}) do
     new_data = Map.put(data, name, u)
     {:reply, {:ok, "User added"}, %__MODULE__{is_logged_in: is_in, users: new_data}}
   end
